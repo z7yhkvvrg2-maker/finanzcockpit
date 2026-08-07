@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Finanz-Cockpit · Familie Gastgeb</title>
+<style>
+  :root{
+    color-scheme: light;
+    --surface:#fcfcfb; --plane:#f9f9f7; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+    --grid:#e1e0d9; --baseline:#c3c2b7; --ring:rgba(11,11,11,0.10);
+    --good:#0ca30c; --good-text:#006300; --warn:#fab219; --warn-text:#7a5200; --crit:#d03b3b; --crit-text:#a02020;
+    --accent:#2a78d6; --accent-deep:#1c5cab; --bar-track:#eceae4;
+  }
+  :root[data-theme="dark"]{
+    color-scheme: dark;
+    --surface:#1a1a19; --plane:#0d0d0d; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,0.10);
+    --good:#0ca30c; --good-text:#3fbf3f; --warn:#fab219; --warn-text:#fab219; --crit:#d03b3b; --crit-text:#e66767;
+    --accent:#3987e5; --accent-deep:#6da7ec; --bar-track:#2c2c2a;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      color-scheme: dark;
+      --surface:#1a1a19; --plane:#0d0d0d; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+      --grid:#2c2c2a; --baseline:#383835; --ring:rgba(255,255,255,0.10);
+      --good:#0ca30c; --good-text:#3fbf3f; --warn:#fab219; --warn-text:#fab219; --crit:#d03b3b; --crit-text:#e66767;
+      --accent:#3987e5; --accent-deep:#6da7ec; --bar-track:#2c2c2a;
+    }
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background:var(--plane); color:var(--ink);
+    padding-bottom: env(safe-area-inset-bottom);
+    min-height:100vh;
+  }
+  header.app{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 20px 10px;
+    max-width:1080px; margin:0 auto;
+  }
+  header.app h1{font-size:17px; font-weight:650; letter-spacing:.2px}
+  header.app .sub{font-size:12px; color:var(--muted)}
+  .theme-btn{
+    border:1px solid var(--ring); background:var(--surface); color:var(--ink2);
+    border-radius:8px; padding:6px 10px; font-size:12px; cursor:pointer;
+  }
+  nav.tabs{
+    display:flex; gap:4px; overflow-x:auto; -webkit-overflow-scrolling:touch;
+    max-width:1080px; margin:0 auto; padding:0 16px 10px;
+  }
+  nav.tabs button{
+    border:1px solid transparent; background:transparent; color:var(--ink2);
+    padding:8px 13px; border-radius:999px; font-size:13.5px; font-weight:550;
+    cursor:pointer; white-space:nowrap;
+  }
+  nav.tabs button.active{ background:var(--surface); border-color:var(--ring); color:var(--ink); box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  main{max-width:1080px; margin:0 auto; padding:6px 16px 60px}
+  section.view{display:none}
+  section.view.active{display:block}
+  .card{
+    background:var(--surface); border:1px solid var(--ring); border-radius:14px;
+    padding:18px 18px; margin-bottom:14px;
+  }
+  .card h2{font-size:13px; font-weight:600; color:var(--ink2); text-transform:uppercase; letter-spacing:.6px; margin-bottom:12px}
+  /* Month switcher */
+  .month-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px}
+  .month-row .mname{font-size:18px; font-weight:650}
+  .month-row .mstate{font-size:12px; color:var(--muted); margin-top:2px}
+  .month-row button{
+    border:1px solid var(--ring); background:var(--surface); color:var(--ink);
+    width:38px; height:38px; border-radius:10px; font-size:16px; cursor:pointer;
+  }
+  /* Ampel */
+  .ampel{
+    display:flex; align-items:center; gap:16px; padding:20px 18px;
+    border-radius:14px; border:1px solid var(--ring); background:var(--surface); margin-bottom:14px;
+  }
+  .ampel .dot{width:52px; height:52px; border-radius:50%; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; font-size:24px; color:#fff; font-weight:700}
+  .ampel .label{font-size:26px; font-weight:750; letter-spacing:.5px}
+  .ampel .why{font-size:13.5px; color:var(--ink2); margin-top:3px; line-height:1.45}
+  .ampel.g .dot{background:var(--good)} .ampel.g .label{color:var(--good-text)}
+  .ampel.y .dot{background:var(--warn)} .ampel.y .label{color:var(--warn-text)}
+  .ampel.r .dot{background:var(--crit)} .ampel.r .label{color:var(--crit-text)}
+  .ampel.na .dot{background:var(--baseline)} .ampel.na .label{color:var(--muted); font-size:20px}
+  /* KPI grid */
+  .kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+  @media (max-width:760px){ .kpis{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:420px){ .kpis{grid-template-columns:1fr 1fr} }
+  .kpi{background:var(--surface); border:1px solid var(--ring); border-radius:12px; padding:13px 14px; min-width:0}
+  .kpi .t{font-size:11.5px; color:var(--muted); font-weight:600; letter-spacing:.3px; margin-bottom:6px}
+  .kpi .v{font-size:21px; font-weight:700; font-variant-numeric:tabular-nums; overflow-wrap:anywhere}
+  .kpi .s{font-size:12px; color:var(--ink2); margin-top:4px; font-variant-numeric:tabular-nums}
+  .kpi .s.ok{color:var(--good-text)} .kpi .s.bad{color:var(--crit-text)} .kpi .s.warn{color:var(--warn-text)}
+  .kpi.wide{grid-column:1 / -1}
+  .flag{display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600;
+    padding:4px 10px; border-radius:999px; margin-top:8px}
+  .flag.bad{color:var(--crit-text); background:color-mix(in srgb, var(--crit) 12%, transparent)}
+  .flag.ok{color:var(--good-text); background:color-mix(in srgb, var(--good) 12%, transparent)}
+  /* Progress bars */
+  .goal{margin-bottom:16px}
+  .goal .gh{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; gap:10px}
+  .goal .gn{font-size:14px; font-weight:600}
+  .goal .gv{font-size:12.5px; color:var(--ink2); font-variant-numeric:tabular-nums; text-align:right}
+  .bar{height:10px; background:var(--bar-track); border-radius:5px; overflow:hidden}
+  .bar > i{display:block; height:100%; border-radius:5px 4px 4px 5px; background:var(--accent); min-width:2px; transition:width .3s}
+  .bar > i.done{background:var(--good)}
+  .goal .gnote{font-size:12px; color:var(--muted); margin-top:5px; line-height:1.4}
+  /* Check list */
+  .check{display:flex; gap:12px; padding:12px 4px; border-bottom:1px solid var(--grid); align-items:flex-start}
+  .check:last-of-type{border-bottom:none}
+  .check .ic{width:26px; height:26px; border-radius:50%; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; color:#fff; margin-top:1px}
+  .check .ic.ok{background:var(--good)} .check .ic.no{background:var(--crit)} .check .ic.man{background:var(--baseline); color:var(--ink2)}
+  .check .q{font-size:14px; font-weight:600; line-height:1.35}
+  .check .a{font-size:12.5px; color:var(--ink2); margin-top:3px; line-height:1.45}
+  .check label{display:flex; gap:8px; align-items:center; font-size:13.5px; margin-top:6px; color:var(--ink); cursor:pointer}
+  .check input[type=checkbox]{width:18px; height:18px; accent-color:var(--accent)}
+  .check input[type=number]{margin-top:6px}
+  /* Forms */
+  .frm{display:grid; grid-template-columns:repeat(2,1fr); gap:12px}
+  @media (max-width:640px){ .frm{grid-template-columns:1fr} }
+  .fld{display:flex; flex-direction:column; gap:5px}
+  .fld label{font-size:12.5px; color:var(--ink2); font-weight:600}
+  .fld .hint{font-size:11.5px; color:var(--muted)}
+  input[type=number], input[type=month], textarea{
+    border:1px solid var(--ring); background:var(--plane); color:var(--ink);
+    border-radius:9px; padding:10px 12px; font-size:16px; font-family:inherit;
+    font-variant-numeric:tabular-nums; width:100%;
+  }
+  input:focus, textarea:focus{outline:2px solid var(--accent); outline-offset:0; border-color:transparent}
+  .btn{
+    border:none; background:var(--accent); color:#fff; font-weight:650; font-size:14.5px;
+    padding:12px 18px; border-radius:10px; cursor:pointer;
+  }
+  .btn:hover{background:var(--accent-deep)}
+  .btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--ring)}
+  .btn.danger{background:transparent; color:var(--crit-text); border:1px solid var(--ring)}
+  .btnrow{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px}
+  .note{font-size:12.5px; color:var(--muted); line-height:1.5; margin-top:10px}
+  .toast{
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+    background:var(--ink); color:var(--plane); font-size:13.5px; font-weight:600;
+    padding:10px 18px; border-radius:999px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:50;
+  }
+  .toast.show{opacity:1}
+  /* Verlauf */
+  table.hist{width:100%; border-collapse:collapse; font-size:13.5px}
+  table.hist th{color:var(--muted); font-weight:600; text-align:left; font-size:11.5px; letter-spacing:.4px; padding:6px 8px; border-bottom:1px solid var(--grid)}
+  table.hist td{padding:9px 8px; border-bottom:1px solid var(--grid); font-variant-numeric:tabular-nums}
+  table.hist td.r, table.hist th.r{text-align:right}
+  .adot{display:inline-flex; align-items:center; gap:6px; font-weight:650; font-size:12.5px}
+  .adot i{width:12px; height:12px; border-radius:50%; display:inline-block}
+  .adot.g i{background:var(--good)} .adot.g{color:var(--good-text)}
+  .adot.y i{background:var(--warn)} .adot.y{color:var(--warn-text)}
+  .adot.r i{background:var(--crit)} .adot.r{color:var(--crit-text)}
+  .charts2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  @media (max-width:700px){ .charts2{grid-template-columns:1fr} }
+  .chart-wrap{position:relative}
+  .chart-wrap svg{display:block; width:100%; height:auto}
+  .tip{
+    position:absolute; pointer-events:none; background:var(--surface); border:1px solid var(--ring);
+    border-radius:8px; padding:6px 10px; font-size:12px; color:var(--ink);
+    box-shadow:0 2px 8px rgba(0,0,0,.12); opacity:0; transition:opacity .12s; white-space:nowrap; z-index:5;
+    font-variant-numeric:tabular-nums;
+  }
+  .empty{color:var(--muted); font-size:13.5px; padding:8px 0; line-height:1.5}
+  .pill-info{font-size:12px; color:var(--muted); border:1px dashed var(--baseline); border-radius:10px; padding:10px 12px; line-height:1.5; margin-top:12px}
+</style>
+</head>
+<body>
+<header class="app">
+  <div>
+    <h1>Finanz-Cockpit</h1>
+    <div class="sub">Familie Gastgeb · privat · alle Daten bleiben auf diesem Gerät</div>
+  </div>
+  <button class="theme-btn" id="themeBtn" type="button">Dunkel/Hell</button>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-v="cockpit" class="active">Cockpit</button>
+  <button data-v="ziele">Ziele</button>
+  <button data-v="check">Monats-Check</button>
+  <button data-v="verlauf">Verlauf</button>
+  <button data-v="eingabe">Eingabe</button>
+  <button data-v="einstellungen">Einstellungen</button>
+</nav>
+
+<main>
+  <!-- ============ COCKPIT ============ -->
+  <section class="view active" id="v-cockpit">
+    <div class="month-row">
+      <button type="button" id="mPrev" aria-label="Voriger Monat">‹</button>
+      <div style="text-align:center">
+        <div class="mname" id="mName">–</div>
+        <div class="mstate" id="mState"></div>
+      </div>
+      <button type="button" id="mNext" aria-label="Nächster Monat">›</button>
+    </div>
+    <div id="ampelBox"></div>
+    <div class="kpis" id="kpiGrid"></div>
+  </section>
+
+  <!-- ============ ZIELE ============ -->
+  <section class="view" id="v-ziele">
+    <div class="card"><h2>Notgroschen</h2><div id="goalNotgroschen"></div></div>
+    <div class="card"><h2>Familien- / Baby-Topf</h2><div id="goalBaby"></div></div>
+    <div class="card"><h2>Fixkosten</h2><div id="goalFix"></div></div>
+    <div class="card"><h2>Depot-Sparplan</h2><div id="goalDepot"></div></div>
+    <div class="card"><h2>Kredit</h2><div id="goalKredit"></div></div>
+  </section>
+
+  <!-- ============ MONATS-CHECK ============ -->
+  <section class="view" id="v-check">
+    <div class="card">
+      <h2>Monats-Check <span id="checkMonthLabel" style="text-transform:none"></span></h2>
+      <div id="checkList"></div>
+      <div class="btnrow">
+        <button class="btn" id="btnCloseMonth" type="button">Monat abschließen und speichern</button>
+        <button class="btn ghost" id="btnReopenMonth" type="button" style="display:none">Monat wieder öffnen</button>
+      </div>
+      <div class="note">Grün heißt: alle sieben Prüfpunkte erfüllt. Gelb: genau eine Abweichung. Rot: mindestens zwei Abweichungen, oder das Fixkonto war im Monat unter 0 €. Frage 8 (eingesparter Betrag) zählt nicht als Abweichung, sie wird nur festgehalten.</div>
+    </div>
+  </section>
+
+  <!-- ============ VERLAUF ============ -->
+  <section class="view" id="v-verlauf">
+    <div class="card">
+      <h2>Monate</h2>
+      <div id="histTable"></div>
+    </div>
+    <div class="charts2">
+      <div class="card"><h2>Notgroschen-Entwicklung</h2><div class="chart-wrap" id="chartNot"></div></div>
+      <div class="card"><h2>Kreditrestschuld</h2><div class="chart-wrap" id="chartKredit"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ EINGABE ============ -->
+  <section class="view" id="v-eingabe">
+    <div class="card">
+      <h2>Monatswerte <span id="editMonthLabel" style="text-transform:none"></span></h2>
+      <div class="frm" id="entryForm">
+        <div class="fld"><label>Fixkosten gesamt (Ist) €</label><input type="number" step="0.01" inputmode="decimal" data-k="fixIst"></div>
+        <div class="fld"><label>Niedrigster Saldo Fixkonto im Monat €</label><input type="number" step="0.01" inputmode="decimal" data-k="fixMinSaldo"><span class="hint">Der tiefste Kontostand des Fixkontos, auch kurzzeitig. Negativ eingeben, falls unter 0.</span></div>
+        <div class="fld"><label>Alltagsausgaben (Ist) €</label><input type="number" step="0.01" inputmode="decimal" data-k="alltagIst"></div>
+        <div class="fld"><label>Verfügbar bis Monatsende €</label><input type="number" step="0.01" inputmode="decimal" data-k="verfuegbar"></div>
+        <div class="fld"><label>Persönliches Budget Matthias €</label><input type="number" step="0.01" inputmode="decimal" data-k="persM"></div>
+        <div class="fld"><label>Persönliches Budget Julia €</label><input type="number" step="0.01" inputmode="decimal" data-k="persJ"></div>
+        <div class="fld"><label>Rücklagenkonto Stand €</label><input type="number" step="0.01" inputmode="decimal" data-k="ruecklagen"></div>
+        <div class="fld"><label>Notgroschen Stand €</label><input type="number" step="0.01" inputmode="decimal" data-k="notgroschen"></div>
+        <div class="fld"><label>Familien-/Baby-Topf Stand €</label><input type="number" step="0.01" inputmode="decimal" data-k="babyTopf"></div>
+        <div class="fld"><label>Depotstand €</label><input type="number" step="0.01" inputmode="decimal" data-k="depot"></div>
+        <div class="fld"><label>Kreditrestschuld €</label><input type="number" step="0.01" inputmode="decimal" data-k="kreditRest"></div>
+      </div>
+      <div class="btnrow"><button class="btn" id="btnSaveEntry" type="button">Werte speichern</button></div>
+      <div class="pill-info">Version 1 arbeitet bewusst mit manueller Eingabe (aus eurer Excel übernehmbar). Der Import von CSV-Exporten (Finanzguru, Bank) ist in der Architektur vorbereitet und kommt in Version 2, ohne dass sich an dieser Ansicht etwas ändert.</div>
+    </div>
+  </section>
+
+  <!-- ============ EINSTELLUNGEN ============ -->
+  <section class="view" id="v-einstellungen">
+    <div class="card">
+      <h2>Ziele und Regeln</h2>
+      <div class="frm" id="setForm">
+        <div class="fld"><label>Fixkosten-Ziel € / Monat</label><input type="number" step="1" data-s="fixZiel"><span class="hint">Zunächst unter 2.400 €, später 2.200 bis 2.300 €.</span></div>
+        <div class="fld"><label>Alltagsbudget-Ziel € / Monat</label><input type="number" step="1" data-s="alltagZiel"></div>
+        <div class="fld"><label>Persönliches Budget je Person €</label><input type="number" step="1" data-s="persZiel"></div>
+        <div class="fld"><label>Mindest-Puffer Fixkonto €</label><input type="number" step="1" data-s="puffer"></div>
+        <div class="fld"><label>Baby-Topf-Ziel €</label><input type="number" step="1" data-s="babyZiel"><span class="hint">Rahmen laut System: 2.000 bis 3.000 €.</span></div>
+        <div class="fld"><label>Kredit Startschuld €</label><input type="number" step="1" data-s="kreditStart"><span class="hint">Für den Fortschrittsbalken der Entschuldung.</span></div>
+      </div>
+      <div class="btnrow"><button class="btn" id="btnSaveSet" type="button">Einstellungen speichern</button></div>
+      <div class="note">Notgroschen-Stufen sind fix hinterlegt: 3.000 €, dann 5.000 €, dann 10.000 €. Depot-Sparplan-Regel: 100 € monatlich, ab 5.000 € Notgroschen mindestens 200 €.</div>
+    </div>
+    <div class="card">
+      <h2>Daten</h2>
+      <div class="btnrow">
+        <button class="btn ghost" id="btnExport" type="button">Daten sichern (JSON)</button>
+        <button class="btn ghost" id="btnImport" type="button">Daten laden (JSON)</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none">
+        <button class="btn ghost" id="btnDemo" type="button">Beispieldaten laden</button>
+        <button class="btn danger" id="btnWipe" type="button">Alle Daten löschen</button>
+      </div>
+      <div class="note">Alle Daten liegen ausschließlich im Browser dieses Geräts (localStorage). Nichts wird an Server oder Dritte übertragen. Zum Abgleich zwischen euren Geräten: hier sichern, Datei teilen, am anderen Gerät laden. Regelmäßige Sicherung empfohlen, z. B. nach jedem Monatsabschluss.</div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* =========================================================
+   Finanz-Cockpit Familie Gastgeb · Version 1.0
+   Alle Berechnungen sind bewusst simpel und nachvollziehbar.
+   Keine externen Requests, keine Abhängigkeiten, kein Tracking.
+   ---------------------------------------------------------
+   Architektur-Hinweis für Version 2 (CSV-Import):
+   Die Funktion applyMonthValues(monthKey, values) ist die einzige
+   Schreibstelle für Monatswerte. Ein späterer CSV-Importer
+   (Finanzguru / Bank) muss nur ein values-Objekt gleicher Form
+   erzeugen und diese Funktion aufrufen.
+   ========================================================= */
+
+const STORE_KEY = "finanzCockpitGastgeb_v1";
+const NOTGROSCHEN_STUFEN = [3000, 5000, 10000];
+
+const DEFAULTS = {
+  settings: { fixZiel: 2400, alltagZiel: 900, persZiel: 150, puffer: 300, babyZiel: 2500, kreditStart: 0 },
+  months: {}   // "YYYY-MM" -> {values..., manual:{q4,q6,q7,eingespart}, closed:bool}
+};
+
+/* ---------- Speicher (localStorage mit Fallback) ---------- */
+let memStore = null;
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){ /* localStorage nicht verfügbar */ }
+  return memStore ? JSON.parse(JSON.stringify(memStore)) : JSON.parse(JSON.stringify(DEFAULTS));
+}
+function saveState(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  catch(e){ memStore = JSON.parse(JSON.stringify(state)); }
+}
+let state = loadState();
+if(!state.settings) state.settings = JSON.parse(JSON.stringify(DEFAULTS.settings));
+if(!state.months) state.months = {};
+
+/* ---------- Hilfen ---------- */
+const EUR = new Intl.NumberFormat("de-AT", {style:"currency", currency:"EUR", maximumFractionDigits:0});
+const EUR2 = new Intl.NumberFormat("de-AT", {style:"currency", currency:"EUR", minimumFractionDigits:2, maximumFractionDigits:2});
+const MONTHS_DE = ["Jänner","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+function fmt(v){ return (v===null||v===undefined||isNaN(v)) ? "–" : EUR.format(v); }
+function fmt2(v){ return (v===null||v===undefined||isNaN(v)) ? "–" : EUR2.format(v); }
+function nowKey(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+function keyLabel(k){ const [y,m]=k.split("-").map(Number); return MONTHS_DE[m-1]+" "+y; }
+function shiftKey(k, delta){ let [y,m]=k.split("-").map(Number); m+=delta; while(m<1){m+=12;y--;} while(m>12){m-=12;y++;} return y+"-"+String(m).padStart(2,"0"); }
+function prevKey(k){ return shiftKey(k,-1); }
+function num(v){ const n=parseFloat(v); return isNaN(n)?null:n; }
+function monthObj(k){ return state.months[k] || null; }
+function sortedKeys(){ return Object.keys(state.months).sort(); }
+function hasVal(m,k){ return m && m.values && m.values[k]!==null && m.values[k]!==undefined; }
+
+let currentKey = nowKey();
+
+/* ---------- Einzige Schreibstelle für Monatswerte (CSV-ready) ---------- */
+function applyMonthValues(key, values){
+  if(!state.months[key]) state.months[key] = { values:{}, manual:{q4:false,q6:false,q7:false,eingespart:null,notiz:""}, closed:false };
+  Object.assign(state.months[key].values, values);
+  saveState();
+}
+
+/* ---------- Regelwerk: die 7 Prüfpunkte + Frage 8 ----------
+   Jede Regel liefert {ok:true/false/null, text:Begründung}.
+   null = nicht bewertbar (Wert fehlt) und zählt NICHT als Abweichung,
+   wird aber sichtbar gemacht. */
+function evalChecks(key){
+  const m = monthObj(key);
+  const s = state.settings;
+  const v = m ? m.values : {};
+  const man = m ? m.manual : {q4:false,q6:false,q7:false,eingespart:null};
+  const prev = monthObj(prevKey(key));
+  const out = [];
+
+  // 1 Fixkonto
+  if(v.fixMinSaldo===null||v.fixMinSaldo===undefined){ out.push({ok:null, q:"Fixkonto: niedrigster Saldo über 0 € und Puffer mindestens "+fmt(s.puffer)+"?", a:"Kein Wert erfasst."}); }
+  else if(v.fixMinSaldo < 0){ out.push({ok:false, q:"Fixkonto: niedrigster Saldo über 0 € und Puffer mindestens "+fmt(s.puffer)+"?", a:"Nein. Tiefster Stand "+fmt2(v.fixMinSaldo)+" €, das Konto war unter 0."}); }
+  else if(v.fixMinSaldo < s.puffer){ out.push({ok:false, q:"Fixkonto: niedrigster Saldo über 0 € und Puffer mindestens "+fmt(s.puffer)+"?", a:"Teilweise. Tiefster Stand "+fmt2(v.fixMinSaldo)+", Puffer von "+fmt(s.puffer)+" unterschritten."}); }
+  else out.push({ok:true, q:"Fixkonto: niedrigster Saldo über 0 € und Puffer mindestens "+fmt(s.puffer)+"?", a:"Ja. Tiefster Stand "+fmt2(v.fixMinSaldo)+"."});
+
+  // 2 Alltagsbudget
+  if(v.alltagIst===null||v.alltagIst===undefined) out.push({ok:null, q:"Alltagsbudget eingehalten?", a:"Kein Wert erfasst. Ziel: "+fmt(s.alltagZiel)+"."});
+  else if(v.alltagIst <= s.alltagZiel) out.push({ok:true, q:"Alltagsbudget eingehalten?", a:"Ja. "+fmt2(v.alltagIst)+" von "+fmt(s.alltagZiel)+"."});
+  else out.push({ok:false, q:"Alltagsbudget eingehalten?", a:"Nein. "+fmt2(v.alltagIst)+" statt "+fmt(s.alltagZiel)+" ("+fmt2(v.alltagIst-s.alltagZiel)+" darüber)."});
+
+  // 3 Gleiche persönliche Budgets
+  if(v.persM===null||v.persM===undefined||v.persJ===null||v.persJ===undefined) out.push({ok:null, q:"Gleiche persönliche Budgets überwiesen?", a:"Werte fehlen."});
+  else if(Math.abs(v.persM - v.persJ) < 0.005) out.push({ok:true, q:"Gleiche persönliche Budgets überwiesen?", a:"Ja. Beide "+fmt2(v.persM)+"."});
+  else out.push({ok:false, q:"Gleiche persönliche Budgets überwiesen?", a:"Nein. Matthias "+fmt2(v.persM)+", Julia "+fmt2(v.persJ)+"."});
+
+  // 4 Sonderausgaben aus Rücklagen (manuell)
+  out.push({ok: man.q4 ? true : false, manual:"q4", q:"Sonderausgaben ausschließlich aus Rücklagen bezahlt?", a: man.q4 ? "Ja, bestätigt." : "Noch nicht bestätigt."});
+
+  // 5 Notgroschen auf Zielpfad
+  if(v.notgroschen===null||v.notgroschen===undefined) out.push({ok:null, q:"Notgroschen auf Zielpfad?", a:"Kein Wert erfasst."});
+  else{
+    const endZiel = NOTGROSCHEN_STUFEN[NOTGROSCHEN_STUFEN.length-1];
+    if(v.notgroschen >= endZiel) out.push({ok:true, q:"Notgroschen auf Zielpfad?", a:"Ja. Endziel "+fmt(endZiel)+" erreicht ("+fmt2(v.notgroschen)+")."});
+    else if(prev && hasVal(prev,"notgroschen")){
+      if(v.notgroschen >= prev.values.notgroschen) out.push({ok:true, q:"Notgroschen auf Zielpfad?", a:"Ja. "+fmt2(prev.values.notgroschen)+" → "+fmt2(v.notgroschen)+" (nicht gesunken)."});
+      else out.push({ok:false, q:"Notgroschen auf Zielpfad?", a:"Nein. Gesunken von "+fmt2(prev.values.notgroschen)+" auf "+fmt2(v.notgroschen)+"."});
+    }
+    else out.push({ok:true, q:"Notgroschen auf Zielpfad?", a:"Erster erfasster Monat, Stand "+fmt2(v.notgroschen)+" gilt als Ausgangspunkt."});
+  }
+
+  // 6 Depot-Sparplan (manuell, mit Regelanzeige)
+  const soll = (num(v.notgroschen)!==null && v.notgroschen>=5000) ? 200 : 100;
+  out.push({ok: man.q6 ? true : false, manual:"q6", q:"Depot-Sparplan ausgeführt?", a:(man.q6?"Ja, bestätigt. ":"Noch nicht bestätigt. ")+"Laut Regel aktuell mindestens "+fmt(soll)+" pro Monat."});
+
+  // 7 Keine neuen Abos / ungeplanten Abbuchungen (manuell)
+  out.push({ok: man.q7 ? true : false, manual:"q7", q:"Keine neuen Abos oder ungeplanten Abbuchungen?", a: man.q7 ? "Ja, geprüft und bestätigt." : "Noch nicht bestätigt."});
+
+  return out;
+}
+
+function evalAmpel(key){
+  const m = monthObj(key);
+  if(!m) return {code:"na", label:"Keine Daten", why:"Für diesen Monat sind noch keine Werte erfasst. Trage sie unter „Eingabe“ ein."};
+  const checks = evalChecks(key);
+  const abw = checks.filter(c=>c.ok===false).length;
+  const offen = checks.filter(c=>c.ok===null).length;
+  const fixUnterNull = hasVal(m,"fixMinSaldo") && m.values.fixMinSaldo < 0;
+  let code, why;
+  if(fixUnterNull || abw>=2){ code="r"; why = fixUnterNull ? "Das Fixkonto war im Monatsverlauf unter 0 €." : abw+" Abweichungen vom System."; if(fixUnterNull && abw>=2) why="Das Fixkonto war unter 0 € und es gibt "+abw+" Abweichungen."; }
+  else if(abw===1){ code="y"; const f=checks.find(c=>c.ok===false); why="Eine Abweichung: "+f.q; }
+  else { code="g"; why="Alle Prüfpunkte erfüllt."+(offen?" ("+offen+" Punkt(e) noch ohne Wert.)":""); }
+  return {code, label: code==="g"?"GRÜN":code==="y"?"GELB":"ROT", why, abw, offen};
+}
+
+/* ---------- Rendering ---------- */
+const $ = sel => document.querySelector(sel);
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"), 2200); }
+
+function renderCockpit(){
+  $("#mName").textContent = keyLabel(currentKey);
+  const m = monthObj(currentKey);
+  $("#mState").textContent = m ? (m.closed ? "Monat abgeschlossen" : "In Bearbeitung") : "Noch keine Werte";
+  const a = evalAmpel(currentKey);
+  const icons = {g:"✓", y:"!", r:"✕", na:"·"};
+  $("#ampelBox").innerHTML =
+    '<div class="ampel '+a.code+'" role="status">'+
+      '<div class="dot">'+icons[a.code]+'</div>'+
+      '<div><div class="label">'+(a.label||"")+'</div><div class="why">'+a.why+'</div></div>'+
+    '</div>';
+
+  const s = state.settings, v = m?m.values:{};
+  const prev = monthObj(prevKey(currentKey));
+  function delta(k, invert){
+    if(!hasVal(m,k)||!hasVal(prev,k)) return "";
+    const d = v[k]-prev.values[k];
+    if(Math.abs(d)<0.005) return '<div class="s">unverändert</div>';
+    const good = invert ? d<0 : d>0;
+    return '<div class="s '+(good?"ok":"bad")+'">'+(d>0?"+":"")+EUR.format(d)+' zum Vormonat</div>';
+  }
+  const fixSub = hasVal(m,"fixIst") ? '<div class="s '+((v.fixIst<=s.fixZiel)?"ok":"bad")+'">Ziel: unter '+fmt(s.fixZiel)+'</div>' : '<div class="s">Ziel: unter '+fmt(s.fixZiel)+'</div>';
+  const allSub = hasVal(m,"alltagIst") ? '<div class="s '+((v.alltagIst<=s.alltagZiel)?"ok":"bad")+'">Ziel: '+fmt(s.alltagZiel)+'</div>' : '<div class="s">Ziel: '+fmt(s.alltagZiel)+'</div>';
+  const persWarn = (hasVal(m,"persM")&&hasVal(m,"persJ")&&Math.abs(v.persM-v.persJ)>=0.005) ? '<div class="s warn">ungleich verteilt</div>' : "";
+  const fixFlag = hasVal(m,"fixMinSaldo")
+    ? (v.fixMinSaldo<0
+        ? '<span class="flag bad">✕ Fixkonto war unter 0 € (Tiefststand '+fmt2(v.fixMinSaldo)+')</span>'
+        : '<span class="flag ok">✓ Fixkonto blieb über 0 € (Tiefststand '+fmt2(v.fixMinSaldo)+')</span>')
+    : "";
+
+  const tiles = [
+    {t:"Fixkosten Ist / Ziel", v:fmt(v.fixIst), sub:fixSub},
+    {t:"Alltagsbudget Ist / Ziel", v:fmt(v.alltagIst), sub:allSub},
+    {t:"Verfügbar bis Monatsende", v:fmt(v.verfuegbar), sub:""},
+    {t:"Persönlich Matthias", v:fmt(v.persM), sub:persWarn},
+    {t:"Persönlich Julia", v:fmt(v.persJ), sub:persWarn},
+    {t:"Rücklagenkonto", v:fmt(v.ruecklagen), sub:delta("ruecklagen",false)},
+    {t:"Notgroschen", v:fmt(v.notgroschen), sub:delta("notgroschen",false)},
+    {t:"Depot", v:fmt(v.depot), sub:delta("depot",false)},
+    {t:"Kreditrestschuld", v:fmt(v.kreditRest), sub:delta("kreditRest",true)},
+  ];
+  $("#kpiGrid").innerHTML = tiles.map(x=>'<div class="kpi"><div class="t">'+x.t+'</div><div class="v">'+x.v+'</div>'+(x.sub||"")+'</div>').join("")
+    + '<div class="kpi wide"><div class="t">Fixkonto-Kontrolle</div>'+(fixFlag||'<div class="s">Niedrigsten Monats-Saldo unter „Eingabe“ erfassen.</div>')+'</div>';
+}
+
+function bar(now, target, note, doneLabel){
+  const pct = target>0 ? Math.max(0, Math.min(100, (now/target)*100)) : 0;
+  const done = now>=target;
+  return '<div class="goal"><div class="gh"><span class="gn">'+ (doneLabel||"") +'</span><span class="gv">'+fmt(now)+' / '+fmt(target)+' ('+Math.round(pct)+' %)</span></div>'+
+    '<div class="bar"><i class="'+(done?"done":"")+'" style="width:'+pct+'%"></i></div>'+
+    (note?'<div class="gnote">'+note+'</div>':"")+'</div>';
+}
+function latestVal(k){
+  const keys = sortedKeys().reverse();
+  for(const key of keys){ const m=state.months[key]; if(hasVal(m,k)) return {v:m.values[k], key}; }
+  return null;
+}
+function renderZiele(){
+  const s = state.settings;
+  const ng = latestVal("notgroschen");
+  const ngV = ng?ng.v:0;
+  let stufeIdx = NOTGROSCHEN_STUFEN.findIndex(z=>ngV<z); if(stufeIdx===-1) stufeIdx=NOTGROSCHEN_STUFEN.length-1;
+  let html = "";
+  NOTGROSCHEN_STUFEN.forEach((z,i)=>{
+    const reached = ngV>=z;
+    html += bar(Math.min(ngV,z), z, null, "Stufe "+(i+1)+": "+fmt(z)+(reached?" · erreicht":""));
+  });
+  html += '<div class="gnote">'+(ng?("Aktueller Stand "+fmt2(ngV)+" (Stand "+keyLabel(ng.key)+"). "):"Noch kein Stand erfasst. ")+
+    (ngV>=NOTGROSCHEN_STUFEN[2]?"Endziel erreicht.":"Nächstes Ziel: "+fmt(NOTGROSCHEN_STUFEN[stufeIdx])+".")+'</div>';
+  $("#goalNotgroschen").innerHTML = html;
+
+  const bb = latestVal("babyTopf");
+  $("#goalBaby").innerHTML = bar(bb?bb.v:0, s.babyZiel, "Zielrahmen laut System: 2.000 bis 3.000 €.", "Baby-Topf: "+fmt(s.babyZiel));
+
+  const fx = latestVal("fixIst");
+  if(fx){
+    const under = fx.v<=s.fixZiel;
+    const pct = Math.max(0, Math.min(100, (fx.v/s.fixZiel)*100));
+    $("#goalFix").innerHTML = '<div class="goal"><div class="gh"><span class="gn">Fixkosten unter '+fmt(s.fixZiel)+' halten</span>'+
+      '<span class="gv">'+fmt2(fx.v)+' ('+keyLabel(fx.key)+')</span></div>'+
+      '<div class="bar"><i class="'+(under?"done":"")+'" style="width:'+pct+'%; '+(under?"":"background:var(--crit)")+'"></i></div>'+
+      '<div class="gnote">'+(under?("Ziel eingehalten, "+fmt2(s.fixZiel-fx.v)+" unter der Grenze."):("Grenze um "+fmt2(fx.v-s.fixZiel)+" überschritten."))+' Später soll die Grenze auf 2.200 bis 2.300 € sinken (in den Einstellungen anpassbar).</div></div>';
+  } else $("#goalFix").innerHTML = '<div class="empty">Noch keine Fixkosten erfasst.</div>';
+
+  const soll = ngV>=5000?200:100;
+  const mNow = monthObj(currentKey);
+  const done6 = mNow && mNow.manual && mNow.manual.q6;
+  $("#goalDepot").innerHTML = '<div class="goal"><div class="gh"><span class="gn">Sparplan-Regel</span><span class="gv">aktuell '+fmt(soll)+' / Monat</span></div>'+
+    '<div class="gnote">100 € monatlich; ab 5.000 € Notgroschen mindestens 200 €. '+(ngV>=5000?"Die 5.000-€-Schwelle ist erreicht, es gelten mindestens 200 €.":"Bis zur 5.000-€-Schwelle fehlen "+fmt(Math.max(0,5000-ngV))+".")+
+    ' Für '+keyLabel(currentKey)+': Ausführung '+(done6?"bestätigt ✓":"noch nicht bestätigt (Monats-Check).")+'</div></div>'+
+    (latestVal("depot")?bar(latestVal("depot").v, Math.max(latestVal("depot").v,1), null, "Depotstand: "+fmt(latestVal("depot").v)).replace('<div class="bar">','<div class="bar" style="display:none">'):"");
+
+  const kr = latestVal("kreditRest");
+  if(kr && s.kreditStart>0){
+    const getilgt = Math.max(0, s.kreditStart-kr.v);
+    $("#goalKredit").innerHTML = bar(getilgt, s.kreditStart, "Restschuld "+fmt2(kr.v)+" (Stand "+keyLabel(kr.key)+") von anfangs "+fmt(s.kreditStart)+".", "Getilgt: "+fmt(getilgt));
+  } else if(kr){
+    $("#goalKredit").innerHTML = '<div class="empty">Restschuld: '+fmt2(kr.v)+'. Trage in den Einstellungen die Startschuld ein, dann erscheint hier der Tilgungs-Fortschritt.</div>';
+  } else $("#goalKredit").innerHTML = '<div class="empty">Noch keine Kreditdaten erfasst.</div>';
+}
+
+function renderCheck(){
+  $("#checkMonthLabel").textContent = "· "+keyLabel(currentKey);
+  const m = monthObj(currentKey);
+  const checks = evalChecks(currentKey);
+  const man = m?m.manual:{q4:false,q6:false,q7:false,eingespart:null};
+  let html = "";
+  checks.forEach((c,i)=>{
+    const ic = c.ok===true?'<div class="ic ok">✓</div>':c.ok===false?'<div class="ic no">✕</div>':'<div class="ic man">?</div>';
+    html += '<div class="check">'+ic+'<div style="flex:1"><div class="q">'+(i+1)+'. '+c.q+'</div><div class="a">'+c.a+'</div>';
+    if(c.manual) html += '<label><input type="checkbox" data-man="'+c.manual+'" '+(man[c.manual]?"checked":"")+'> Bestätigen</label>';
+    html += '</div></div>';
+  });
+  html += '<div class="check"><div class="ic man">€</div><div style="flex:1"><div class="q">8. Welcher Betrag wurde dauerhaft eingespart?</div>'+
+    '<div class="a">Z. B. gekündigtes Abo oder günstigerer Tarif. Zählt nicht als Abweichung.</div>'+
+    '<input type="number" step="0.01" inputmode="decimal" id="inpEingespart" placeholder="0" value="'+(man.eingespart??"")+'" style="max-width:200px"></div></div>';
+  $("#checkList").innerHTML = html;
+
+  document.querySelectorAll('#checkList input[data-man]').forEach(cb=>{
+    cb.addEventListener("change", ()=>{
+      if(!state.months[currentKey]) applyMonthValues(currentKey, {});
+      state.months[currentKey].manual[cb.dataset.man] = cb.checked;
+      saveState(); renderCheck(); renderCockpit();
+    });
+  });
+  const inp = $("#inpEingespart");
+  inp.addEventListener("change", ()=>{
+    if(!state.months[currentKey]) applyMonthValues(currentKey, {});
+    state.months[currentKey].manual.eingespart = num(inp.value);
+    saveState();
+  });
+  const closed = m && m.closed;
+  $("#btnCloseMonth").style.display = closed?"none":"";
+  $("#btnReopenMonth").style.display = closed?"":"none";
+}
+
+function renderVerlauf(){
+  const keys = sortedKeys();
+  if(!keys.length){ $("#histTable").innerHTML = '<div class="empty">Noch keine Monate gespeichert. Der erste Eintrag entsteht unter „Eingabe“ und wird im Monats-Check abgeschlossen.</div>'; $("#chartNot").innerHTML=""; $("#chartKredit").innerHTML=""; return; }
+  let rows = keys.map(k=>{
+    const a = evalAmpel(k); const m = state.months[k];
+    const cls = a.code==="g"?"g":a.code==="y"?"y":a.code==="r"?"r":"";
+    const dot = cls?'<span class="adot '+cls+'"><i></i>'+a.label+'</span>':'<span class="adot">–</span>';
+    return '<tr><td>'+keyLabel(k)+(m.closed?"":' <span style="color:var(--muted);font-size:11px">(offen)</span>')+'</td><td>'+dot+'</td>'+
+      '<td class="r">'+fmt(m.values.notgroschen)+'</td><td class="r">'+fmt(m.values.depot)+'</td><td class="r">'+fmt(m.values.kreditRest)+'</td>'+
+      '<td class="r">'+fmt(m.manual.eingespart)+'</td></tr>';
+  }).join("");
+  $("#histTable").innerHTML = '<div style="overflow-x:auto"><table class="hist"><thead><tr><th>Monat</th><th>Ampel</th><th class="r">Notgroschen</th><th class="r">Depot</th><th class="r">Kredit</th><th class="r">Eingespart</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+
+  drawLine("#chartNot", keys, keys.map(k=>state.months[k].values.notgroschen), false);
+  drawLine("#chartKredit", keys, keys.map(k=>state.months[k].values.kreditRest), true);
+}
+
+/* Einfache SVG-Linie mit Hover-Tooltip. Eine Kennzahl je Chart, keine Doppelachsen. */
+function drawLine(sel, keys, vals, invertGood){
+  const wrap = document.querySelector(sel);
+  const pts = keys.map((k,i)=>({k, v:vals[i]})).filter(p=>p.v!==null&&p.v!==undefined);
+  if(pts.length<2){ wrap.innerHTML = '<div class="empty">Mindestens zwei Monate mit Werten nötig.</div>'; return; }
+  const W=440, H=170, P={l:8,r:8,t:12,b:22};
+  const vmin = Math.min(...pts.map(p=>p.v)), vmax = Math.max(...pts.map(p=>p.v));
+  const span = (vmax-vmin)||1;
+  const x = i => P.l + (W-P.l-P.r) * (i/(pts.length-1));
+  const y = v => P.t + (H-P.t-P.b) * (1-(v-vmin)/span);
+  let d = pts.map((p,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(p.v).toFixed(1)).join(" ");
+  const first=pts[0], last=pts[pts.length-1];
+  const circles = pts.map((p,i)=>'<circle cx="'+x(i).toFixed(1)+'" cy="'+y(p.v).toFixed(1)+'" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2" data-i="'+i+'"></circle>').join("");
+  wrap.innerHTML =
+    '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Verlauf">'+
+    '<line x1="'+P.l+'" y1="'+(H-P.b)+'" x2="'+(W-P.r)+'" y2="'+(H-P.b)+'" stroke="var(--baseline)" stroke-width="1"/>'+
+    '<path d="'+d+'" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+circles+
+    '<text x="'+P.l+'" y="'+(H-6)+'" font-size="10" fill="var(--muted)">'+keyLabel(first.k)+'</text>'+
+    '<text x="'+(W-P.r)+'" y="'+(H-6)+'" font-size="10" fill="var(--muted)" text-anchor="end">'+keyLabel(last.k)+'</text>'+
+    '</svg><div class="tip"></div>';
+  const tip = wrap.querySelector(".tip");
+  wrap.querySelectorAll("circle").forEach(c=>{
+    function show(){
+      const i=+c.dataset.i, p=pts[i];
+      tip.textContent = keyLabel(p.k)+": "+fmt2(p.v);
+      const r = wrap.getBoundingClientRect(), cr = c.getBoundingClientRect();
+      tip.style.left = Math.max(0, Math.min(r.width-140, cr.left-r.left-40))+"px";
+      tip.style.top = (cr.top-r.top-34)+"px";
+      tip.style.opacity = 1;
+    }
+    c.addEventListener("mouseenter", show);
+    c.addEventListener("touchstart", show, {passive:true});
+    c.addEventListener("mouseleave", ()=>tip.style.opacity=0);
+  });
+}
+
+function renderEingabe(){
+  $("#editMonthLabel").textContent = "· "+keyLabel(currentKey);
+  const m = monthObj(currentKey);
+  document.querySelectorAll("#entryForm input[data-k]").forEach(inp=>{
+    const v = m && m.values ? m.values[inp.dataset.k] : null;
+    inp.value = (v===null||v===undefined)?"":v;
+  });
+}
+function renderSettings(){
+  document.querySelectorAll("#setForm input[data-s]").forEach(inp=>{
+    inp.value = state.settings[inp.dataset.s] ?? "";
+  });
+}
+function renderAll(){ renderCockpit(); renderZiele(); renderCheck(); renderVerlauf(); renderEingabe(); renderSettings(); }
+
+/* ---------- Events ---------- */
+document.querySelectorAll("#tabs button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    document.querySelectorAll("#tabs button").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    document.querySelectorAll("section.view").forEach(v=>v.classList.remove("active"));
+    document.getElementById("v-"+b.dataset.v).classList.add("active");
+  });
+});
+$("#mPrev").addEventListener("click", ()=>{ currentKey=shiftKey(currentKey,-1); renderAll(); });
+$("#mNext").addEventListener("click", ()=>{ currentKey=shiftKey(currentKey,1); renderAll(); });
+$("#themeBtn").addEventListener("click", ()=>{
+  const r=document.documentElement;
+  const cur=r.getAttribute("data-theme");
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const effectiveDark = cur==="dark" || (!cur && prefersDark);
+  r.setAttribute("data-theme", effectiveDark?"light":"dark");
+});
+$("#btnSaveEntry").addEventListener("click", ()=>{
+  const values={};
+  document.querySelectorAll("#entryForm input[data-k]").forEach(inp=>{ values[inp.dataset.k]=num(inp.value); });
+  applyMonthValues(currentKey, values);
+  renderAll(); toast("Werte für "+keyLabel(currentKey)+" gespeichert");
+});
+$("#btnSaveSet").addEventListener("click", ()=>{
+  document.querySelectorAll("#setForm input[data-s]").forEach(inp=>{
+    const v=num(inp.value); if(v!==null) state.settings[inp.dataset.s]=v;
+  });
+  saveState(); renderAll(); toast("Einstellungen gespeichert");
+});
+$("#btnCloseMonth").addEventListener("click", ()=>{
+  if(!state.months[currentKey]){ toast("Bitte zuerst Werte eingeben"); return; }
+  state.months[currentKey].closed = true; saveState(); renderAll(); toast(keyLabel(currentKey)+" abgeschlossen");
+});
+$("#btnReopenMonth").addEventListener("click", ()=>{
+  if(state.months[currentKey]){ state.months[currentKey].closed=false; saveState(); renderAll(); }
+});
+$("#btnExport").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "finanz-cockpit-sicherung-"+nowKey()+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+});
+$("#btnImport").addEventListener("click", ()=>$("#importFile").click());
+$("#importFile").addEventListener("change", e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{
+      const obj=JSON.parse(rd.result);
+      if(!obj.settings||!obj.months) throw new Error("Format");
+      state=obj; saveState(); renderAll(); toast("Daten geladen");
+    }catch(err){ toast("Datei konnte nicht gelesen werden"); } };
+  rd.readAsText(f);
+});
+$("#btnWipe").addEventListener("click", ()=>{
+  if(confirm("Wirklich alle Daten auf diesem Gerät löschen?")){
+    state = JSON.parse(JSON.stringify(DEFAULTS)); saveState(); renderAll(); toast("Alle Daten gelöscht");
+  }
+});
+$("#btnDemo").addEventListener("click", ()=>{
+  const base = shiftKey(nowKey(),-3);
+  state = JSON.parse(JSON.stringify(DEFAULTS));
+  state.settings.kreditStart = 24000; state.settings.alltagZiel = 900; state.settings.persZiel = 150;
+  const demo = [
+    {fixIst:2380, fixMinSaldo:412, alltagIst:872, persM:150, persJ:150, ruecklagen:1400, notgroschen:2200, babyTopf:600, depot:1800, kreditRest:21900, verfuegbar:240, q4:true,q6:true,q7:true, eingespart:0},
+    {fixIst:2415, fixMinSaldo:180, alltagIst:955, persM:150, persJ:150, ruecklagen:1550, notgroschen:2500, babyTopf:700, depot:1930, kreditRest:21500, verfuegbar:120, q4:true,q6:true,q7:false, eingespart:12},
+    {fixIst:2360, fixMinSaldo:520, alltagIst:840, persM:150, persJ:150, ruecklagen:1700, notgroschen:2900, babyTopf:850, depot:2070, kreditRest:21100, verfuegbar:310, q4:true,q6:true,q7:true, eingespart:29},
+    {fixIst:2340, fixMinSaldo:610, alltagIst:790, persM:150, persJ:150, ruecklagen:1850, notgroschen:3250, babyTopf:1000, depot:2210, kreditRest:20700, verfuegbar:390, q4:true,q6:true,q7:true, eingespart:0},
+  ];
+  demo.forEach((d,i)=>{
+    const k = shiftKey(base,i);
+    applyMonthValues(k, {fixIst:d.fixIst,fixMinSaldo:d.fixMinSaldo,alltagIst:d.alltagIst,persM:d.persM,persJ:d.persJ,ruecklagen:d.ruecklagen,notgroschen:d.notgroschen,babyTopf:d.babyTopf,depot:d.depot,kreditRest:d.kreditRest,verfuegbar:d.verfuegbar});
+    state.months[k].manual={q4:d.q4,q6:d.q6,q7:d.q7,eingespart:d.eingespart,notiz:""};
+    state.months[k].closed = i<demo.length-1;
+  });
+  saveState(); renderAll(); toast("Beispieldaten geladen (überschreibt bestehende Daten)");
+});
+
+renderAll();
+</script>
+</body>
+</html>
